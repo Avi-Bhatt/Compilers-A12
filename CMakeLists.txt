@@ -31,10 +31,9 @@ project ("Compilers")
 add_executable (Compilers
 	"Compilers.h"	"Compilers.c"
 	"Reader.h"		"Reader.c"		"MainReader.c"
-	# TO_DO: Add A22 (Scanner) and A32 (Parser)
-	#"Scanner.h"		"Scanner.c"		"MainScanner.c"
+	"Scanner.c"		"MainScanner.c" "Scanner.h"
 	#"Parser.h"		"Parser.c"		"MainParser.c"
-)
+ "MainScanner.c" "Scanner.c" "Scanner.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Compilers PROPERTY CXX_STANDARD 20)

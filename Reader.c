@@ -410,7 +410,24 @@ niv_int readerGetPosRead(BufferPointer const readerPointer) {
 	if (!readerPointer) return -1;
 	return readerPointer->positions.read;
 }
-
+/*
+***********************************************************
+* Function name: readerRetract
+* Purpose: Retract the buffer read position by one character
+* Parameters:
+*   readerPointer = pointer to Buffer Reader
+* Return value:
+*   Boolean value about operation success
+************************************************************
+*/
+niv_boolean readerRetract(BufferPointer const readerPointer) {
+	if (!readerPointer) return niv_FALSE;
+	if (readerPointer->positions.read > 0) {
+		readerPointer->positions.read--;
+		return niv_TRUE;
+	}
+	return niv_FALSE;
+}
 
 /*
 ***********************************************************
@@ -504,6 +521,7 @@ niv_void readerPrintStat(BufferPointer const readerPointer) {
 	}
 	printf("\n");
 }
+
 
 /*
 ***********************************************************
