@@ -110,7 +110,7 @@ niv_int mainReader(niv_int argc, niv_string* argv) {
 	/* Create source input buffer */
 	niv_string program = argv[0];
 	niv_string input = argv[2];
-	niv_char mode = MODE_MULTI;
+	niv_char mode = MODE_FIXED;
 	niv_int size = 0, increment = 0, wrongNumber = 0;
 
 	/* Missing file name or/and mode parameter */

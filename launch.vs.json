@@ -1,10 +1,8 @@
 {
-  "version": "0.2.1",
-  "defaults": {},
   "configurations": [
     {
       "args": [
-        "1",
+        "2",
         "README.txt"
       ],
       "name": "Compilers.exe",
@@ -12,5 +10,7 @@
       "projectTarget": "Compilers.exe",
       "type": "default"
     }
-  ]
+  ],
+  "defaults": {},
+  "version": "0.2.1"
 }
