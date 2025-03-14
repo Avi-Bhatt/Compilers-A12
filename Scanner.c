@@ -21,24 +21,15 @@
 ************************************************************
 */
 
-/* The #define _CRT_SECURE_NO_WARNINGS should be used in MS Visual Studio projects
- * to suppress the warnings about using "unsafe" functions like fopen()
- * and standard sting library functions defined in string.h.
- * The define does not have any effect in Borland compiler projects.
- */
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <stdio.h>   /* standard input / output */
-#include <ctype.h>   /* conversion functions */
-#include <stdlib.h>  /* standard library functions and constants */
-#include <string.h>  /* string functions */
-#include <limits.h>  /* integer types constants */
-#include <float.h>   /* floating-point types constants */
-
- /* #define NDEBUG to suppress assert() call */
-#include <assert.h>  /* assert() prototype */
-
-/* project header files */
+#include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+#include <float.h>
+#include <assert.h>
 
 #ifndef COMPILERS_H_
 #include "Compilers.h"
@@ -52,14 +43,7 @@
 #include "Scanner.h"
 #endif
 
-/*
-----------------------------------------------------------------
-Global vars definitions
-----------------------------------------------------------------
-*/
-
 /* Global objects - variables */
-/* This buffer is used as a repository for string literals. */
 extern BufferPointer stringLiteralTable;	/* String literal table */
 niv_int line;								/* Current line number of the source code */
 extern niv_int errorNumber;				/* Defined in platy_st.c - run-time error number */
@@ -123,7 +107,7 @@ Token tokenizer(niv_void) {
 		return currentToken;
 	lexeme[0] = EOS_CHR;
 
-	while (1) { /* endless loop broken by token returns it will generate a warning */
+	while (1) { /* endless loop broken by token returns */
 		c = readerGetChar(sourceBuffer);
 
 		// Skip whitespace and line terminators
@@ -144,13 +128,7 @@ Token tokenizer(niv_void) {
 			return currentToken;
 		}
 
-		/* ------------------------------------------------------------------------
-			Part 1: Implementation of token driven scanner.
-			Every token is possessed by its own dedicated code
-			-----------------------------------------------------------------------
-		*/
-
-		/* Single-character tokens */
+		/* Part 1: Implementation of token driven scanner */
 		switch (c) {
 			/* Cases for symbols */
 		case SCL_CHR:
@@ -355,12 +333,7 @@ Token tokenizer(niv_void) {
 			return currentToken;
 		}
 
-		/* ------------------------------------------------------------------------
-			Part 2: Process letters and digits (identifiers, keywords, numbers)
-			-----------------------------------------------------------------------
-		*/
-
-		/* If we reach here, we need to process identifiers, keywords or numbers */
+		/* Part 2: Process letters and digits (identifiers, keywords, numbers) */
 
 		lexStart = readerGetPosRead(sourceBuffer) - 1;
 		readerSetMark(sourceBuffer, lexStart);
@@ -451,11 +424,13 @@ Token tokenizer(niv_void) {
 			readerAddChar(lexemeBuffer, READER_TERMINATOR);
 			lexeme = readerGetContent(lexemeBuffer, 0);
 
-			/* Process as float or integer */
-			if (isFloat) {
+			/* Process numeric literal - important fix here */
+			if (strchr(lexeme, '.') != NULL) {
+				/* This is a floating-point literal */
 				currentToken = funcFPL(lexeme);
 			}
 			else {
+				/* This is an integer literal */
 				currentToken = funcIL(lexeme);
 			}
 
@@ -470,31 +445,11 @@ Token tokenizer(niv_void) {
 		scData.scanHistogram[currentToken.code]++;
 		return currentToken;
 	} //while
-
 } // tokenizer
 
 /*
  ************************************************************
  * Get Next State
-	The assert(int test) macro can be used to add run-time diagnostic to programs
-	and to "defend" from producing unexpected results.
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	(*) assert() is a macro that expands to an if statement;
-	if test evaluates to false (zero) , assert aborts the program
-	(by calling abort()) and sends the following message on stderr:
-	(*) Assertion failed: test, file filename, line linenum.
-	The filename and linenum listed in the message are the source file name
-	and line number where the assert macro appears.
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	If you place the #define NDEBUG directive ("no debugging")
-	in the source code before the #include <assert.h> directive,
-	the effect is to comment out the assert statement.
-	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	The other way to include diagnostics in a program is to use
-	conditional preprocessing as shown bellow. It allows the programmer
-	to send more details describing the run-time problem.
-	Once the program is tested thoroughly #define DEBUG is commented out
-	or #undef DEBUG is used - see the top of the file.
  ***********************************************************
  */
 
@@ -518,9 +473,6 @@ niv_int nextState(niv_int state, niv_char c) {
 /*
  ************************************************************
  * Get Next Token Class
-	* Create a function to return the column number in the transition table:
-	* Considering an input char c, you can identify the "class".
-	* For instance, a letter should return the column for letters, etc.
  ***********************************************************
  */
 
@@ -562,13 +514,6 @@ niv_int nextClass(niv_char c) {
 /*
  ************************************************************
  * Acceptance State Function ID
- *		In this function, the pattern for IDs must be recognized.
- *		Since keywords obey the same pattern, is required to test if
- *		the current lexeme matches with KW from language.
- *	- Remember to respect the limit defined for lexemes (VID_LEN) and
- *	  set the lexeme to the corresponding attribute (vidLexeme).
- *    Remember to end each token with the \0.
- *  - Suggestion: Use "strncpy" function.
  ***********************************************************
  */
 
@@ -597,11 +542,6 @@ Token funcID(niv_string lexeme) {
 /*
  ************************************************************
  * Acceptance State Function IL
- *		Function responsible to identify IL (integer literals).
- * - It is necessary respect the limit (ex: 2-byte integer in C).
- * - In the case of larger lexemes, error shoul be returned.
- * - Only first ERR_LEN characters are accepted and eventually,
- *   additional three dots (...) should be put in the output.
  ***********************************************************
  */
 
@@ -609,7 +549,7 @@ Token funcIL(niv_string lexeme) {
 	Token currentToken = { 0 };
 	niv_long tlong;
 
-	/* Check if the number has a decimal point */
+	/* Check if the number has a decimal point - handle as float if so */
 	if (strchr(lexeme, '.') != NULL) {
 		/* This is a floating-point number */
 		return funcFPL(lexeme);
@@ -635,9 +575,6 @@ Token funcIL(niv_string lexeme) {
 /*
  ************************************************************
  * Acceptance State Function FPL
- *		Function responsible to identify floating-point literals (FPL).
- * - Similar to IL function but for floating point values
- * - Ensure the float value is within valid range
  ***********************************************************
  */
 Token funcFPL(niv_string lexeme) {
@@ -648,15 +585,10 @@ Token funcFPL(niv_string lexeme) {
 	tfloat = (niv_float)atof(lexeme);
 
 	/* Check if the float is within valid range */
-	if (tfloat != 0.0 || lexeme[0] == '0') {
-		if (tfloat >= FLT_MIN && tfloat <= FLT_MAX) {
-			currentToken.code = FPL_T;
-			scData.scanHistogram[currentToken.code]++;
-			currentToken.attribute.floatValue = tfloat;
-		}
-		else {
-			currentToken = funcErr(lexeme);
-		}
+	if (tfloat >= FLT_MIN && tfloat <= FLT_MAX || tfloat == 0.0) {
+		currentToken.code = FPL_T;
+		scData.scanHistogram[currentToken.code]++;
+		currentToken.attribute.floatValue = tfloat;
 	}
 	else {
 		currentToken = funcErr(lexeme);
@@ -668,11 +600,6 @@ Token funcFPL(niv_string lexeme) {
 /*
 ************************************************************
  * Acceptance State Function SL
- *		Function responsible to identify SL (string literals).
- * - The lexeme must be stored in the String Literal Table
- *   (stringLiteralTable). You need to include the literals in
- *   this structure, using offsets. Remember to include \0 to
- *   separate the lexemes. Remember also to incremente the line.
  ***********************************************************
  */
 
@@ -706,9 +633,6 @@ Token funcSL(niv_string lexeme) {
 /*
 ************************************************************
  * Acceptance State Function KW
- *		Function responsible to identify keywords.
- * - This function is called by funcID if it identifies that
- *   the lexeme is a keyword.
  ***********************************************************
  */
 
@@ -736,7 +660,6 @@ Token funcKW(niv_string lexeme) {
 /*
  ************************************************************
  * Acceptance State Function COM
- *		Function responsible to identify COM (comments).
  ***********************************************************
  */
 
@@ -757,11 +680,6 @@ Token funcCMT(niv_string lexeme) {
 /*
 ************************************************************
  * Acceptance State Function Error
- *		Function responsible to deal with ERR token.
- * - This function uses the errLexeme, respecting the limit given
- *   by ERR_LEN. If necessary, use three dots (...) to use the
- *   limit defined. The error lexeme contains line terminators,
- *   so remember to increment line.
  ***********************************************************
  */
 

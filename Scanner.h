@@ -7,17 +7,6 @@
 ************************************************************
 */
 
-/*
-************************************************************
-* File name: Scanner.h
-* Compiler: MS Visual Studio 2022
-* Course: CST 8152 – Compilers, Lab Section: [011, 012]
-* Assignment: A22, A32.
-* Date: May 01 2024
-* Purpose: This file is the main header for Scanner (.h)
-* Function list: (...).
-*************************************************************/
-
 #ifndef COMPILERS_H_
 #include "Compilers.h"
 #endif
@@ -33,10 +22,6 @@
 #include <_null.h> /* NULL pointer constant is defined there */
 #endif
 
-/*#pragma warning(1:4001) */	/*to enforce C89 type comments  - to make //comments an warning */
-
-/*#pragma warning(error:4001)*/	/* to enforce C89 comments - to make // comments an error */
-
 /* Constants */
 #define VID_LEN 20  /* variable identifier length */
 #define ERR_LEN 40  /* error message length */
@@ -45,11 +30,11 @@
 #define RTE_CODE 1  /* Value for run-time error */
 
 /* Token codes for NIVLang */
-#define NUM_TOKENS 25
+#define NUM_TOKENS 30
 
 enum TOKENS {
     ERR_T,      /*  0: Error token */
-    KWRD_T,     /*  1: Keyword token (fun, int, float, string, while, if, else, return) */
+    KWRD_T,     /*  1: Keyword token */
     VID_T,      /*  2: Variable identifier token */
     INL_T,      /*  3: Integer literal token */
     FPL_T,      /*  4: Floating-point literal token */
@@ -72,7 +57,12 @@ enum TOKENS {
     GEQ_T,      /* 21: Greater than or equal operator (>=) */
     COM_T,      /* 22: Comma token (,) */
     CMT_T,      /* 23: Comment token */
-    SEOF_T      /* 24: Source end-of-file token */
+    BOL_T,      /* 24: Boolean token (True/False) */
+    CLS_T,      /* 25: Class token (class) */
+    LET_T,      /* 26: Let token (let) */
+    WHN_T,      /* 27: When token (when) */
+    VAR_T,      /* 28: Var token (var) */
+    SEOF_T      /* 29: Source end-of-file token */
 };
 
 /* Token string table for NIVLang */
@@ -101,6 +91,11 @@ static niv_string tokenStrTable[NUM_TOKENS] = {
     "GEQ_T",
     "COM_T",
     "CMT_T",
+    "BOL_T",
+    "CLS_T",
+    "LET_T",
+    "WHN_T",
+    "VAR_T",
     "SEOF_T"
 };
 
@@ -110,16 +105,25 @@ typedef enum RelationalOperators { OP_EQ, OP_NE, OP_GT, OP_LT, OP_GE, OP_LE } Re
 typedef enum SourceEndOfFile { SEOF_0, SEOF_255 } EofOperator;
 
 /* NIVLang Keyword Indices */
-#define KWT_SIZE 8
+#define KWT_SIZE 17
 enum KEYWORDS {
-    KW_FUN,    /* 0: 'fun' */
-    KW_INT,    /* 1: 'int' */
-    KW_FLOAT,  /* 2: 'float' */
-    KW_STRING, /* 3: 'string' */
-    KW_WHILE,  /* 4: 'while' */
-    KW_IF,     /* 5: 'if' */
-    KW_ELSE,   /* 6: 'else' */
-    KW_RETURN  /* 7: 'return' */
+    KW_FUN,     /* 0: 'Fun' */
+    KW_CONST,   /* 1: 'Const' */
+    KW_VAR,     /* 2: 'Var' */
+    KW_FOR,     /* 3: 'for' */
+    KW_WHILE,   /* 4: 'while' */
+    KW_BREAK,   /* 5: 'Break' */
+    KW_RETURN,  /* 6: 'Return' */
+    KW_LET,     /* 7: 'Let' */
+    KW_CONTINUE,/* 8: 'Continue' */
+    KW_CLASS,   /* 9: 'Class' */
+    KW_PRINT,   /* 10: 'Print' */
+    KW_IF,      /* 11: 'If' */
+    KW_ELSEIF,  /* 12: 'elseif' */
+    KW_ENDIF,   /* 13: 'endif' */
+    KW_WHEN,    /* 14: 'When' */
+    KW_TRUE,    /* 15: 'True' */
+    KW_FALSE    /* 16: 'False' */
 };
 
 /* Data structures for declaring the token and its attributes */
@@ -134,6 +138,7 @@ typedef union TokenAttribute {
     niv_float floatValue;          /* floating-point literal attribute (value) */
     niv_char idLexeme[VID_LEN + 1]; /* variable identifier token attribute */
     niv_char errLexeme[ERR_LEN + 1]; /* error token attribute */
+    niv_int boolValue;             /* boolean literal value (0 for False, 1 for True) */
 } TokenAttribute;
 
 /* Should be used if no symbol table is implemented */
@@ -143,6 +148,7 @@ typedef struct idAttibutes {
         niv_int intValue;             /* Integer value */
         niv_float floatValue;         /* Float value */
         niv_string stringContent;     /* String value */
+        niv_int boolValue;            /* Boolean value */
     } values;
 } IdAttibutes;
 
@@ -193,7 +199,7 @@ typedef struct scannerData {
 #define NUM_STATES      10
 #define CHAR_CLASSES    10
 
-/* Character classes - according to assignment specifications */
+/* Character classes - modified based on language specification */
 typedef enum {
     LETTER,     /* 0: [A-Za-z] - letters */
     DIGIT,      /* 1: [0-9] - digits */
@@ -217,7 +223,7 @@ static niv_int transitionTable[NUM_STATES][CHAR_CLASSES] = {
     {   ESWR,     3,  ESWR,  ESWR,  ESWR,  ESWR,  ESWR,  ESWR,  ESWR,  ESWR}, /* S3: NOFS (Float) */
     {      4,     4,     4,     5,     4,  ESWR,     4,     4,     4,     4}, /* S4: NOFS (String) */
     {     FS,    FS,    FS,    FS,    FS,    FS,    FS,    FS,    FS,    FS}, /* S5: FSNR (SL) */
-    {      6,     6,     6,     6,     6,  ESWR,     7,     6,     6,     6}, /* S6: NOFS (Comment) */
+    {      6,     6,     6,     6,     7,  ESWR,     6,     6,     6,     6}, /* S6: NOFS (Comment) */
     {     FS,    FS,    FS,    FS,    FS,    FS,    FS,    FS,    FS,    FS}, /* S7: FSNR (COM) */
     {     FS,    FS,    FS,    FS,    FS,    FS,    FS,    FS,    FS,    FS}, /* S8: FSNR (ES) */
     {     FS,    FS,    FS,    FS,    FS,    FS,    FS,    FS,    FS,    FS}  /* S9: FSWR (ER) */
@@ -265,7 +271,7 @@ Token funcFPL(niv_string lexeme);   /* Float-point literal */
 Token funcSL(niv_string lexeme);    /* String literal */
 Token funcKW(niv_string lexeme);    /* Keywords */
 Token funcCMT(niv_string lexeme);   /* Comments */
-Token funcOPR(niv_string lexeme);   /* Operators */
+Token funcBOL(niv_string lexeme);   /* Boolean literal */
 Token funcErr(niv_string lexeme);   /* Error */
 
 /* Define final state table */
@@ -290,14 +296,23 @@ NIVLang keywords
 
 /* List of keywords */
 static niv_string keywordTable[KWT_SIZE] = {
-    "fun",      /* KW00 */
-    "int",      /* KW01 */
-    "float",    /* KW02 */
-    "string",   /* KW03 */
-    "while",    /* KW04 */
-    "if",       /* KW05 */
-    "else",     /* KW06 */
-    "return"    /* KW07 */
+    "Fun",       /* KW00 */
+    "Const",     /* KW01 */
+    "Var",       /* KW02 */
+    "for",       /* KW03 */
+    "while",     /* KW04 */
+    "Break",     /* KW05 */
+    "Return",    /* KW06 */
+    "Let",       /* KW07 */
+    "Continue",  /* KW08 */
+    "Class",     /* KW09 */
+    "Print",     /* KW10 */
+    "If",        /* KW11 */
+    "elseif",    /* KW12 */
+    "endif",     /* KW13 */
+    "When",      /* KW14 */
+    "True",      /* KW15 */
+    "False"      /* KW16 */
 };
 
 /* NEW SECTION: About indentation */
@@ -316,6 +331,7 @@ typedef struct languageAttributes {
     niv_int keywordCount;
     niv_int stringCount;
     niv_int commentCount;
+    niv_int booleanCount;
 } LanguageAttributes;
 
 /* Number of errors */
@@ -323,5 +339,8 @@ niv_int numScannerErrors;
 
 /* Scanner data */
 ScannerData scData;
+
+/* String literal table - globally declared */
+BufferPointer stringLiteralTable;
 
 #endif
