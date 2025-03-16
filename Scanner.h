@@ -2,10 +2,13 @@
 ************************************************************
 * COMPILERS COURSE - Algonquin College
 * Code version: Fall, 2024
-* Author: NIVLang Team
-* Professors: Paulo Sousa
+* Author: Avinish Bhattarai, Nikita Chaudhari
+* Professors: Sarah Khan
 ************************************************************
 */
+
+#ifndef SCANNER_H_
+#define SCANNER_H_
 
 #ifndef COMPILERS_H_
 #include "Compilers.h"
@@ -14,9 +17,6 @@
 #ifndef READER_H_
 #include "Reader.h"
 #endif
-
-#ifndef SCANNER_H_
-#define SCANNER_H_
 
 #ifndef NULL
 #include <_null.h> /* NULL pointer constant is defined there */
@@ -105,7 +105,7 @@ typedef enum RelationalOperators { OP_EQ, OP_NE, OP_GT, OP_LT, OP_GE, OP_LE } Re
 typedef enum SourceEndOfFile { SEOF_0, SEOF_255 } EofOperator;
 
 /* NIVLang Keyword Indices */
-#define KWT_SIZE 17
+#define KWT_SIZE 18 
 enum KEYWORDS {
     KW_FUN,     /* 0: 'Fun' */
     KW_CONST,   /* 1: 'Const' */
@@ -123,7 +123,8 @@ enum KEYWORDS {
     KW_ENDIF,   /* 13: 'endif' */
     KW_WHEN,    /* 14: 'When' */
     KW_TRUE,    /* 15: 'True' */
-    KW_FALSE    /* 16: 'False' */
+    KW_FALSE,   /* 16: 'False' */
+    KW_INPUT    /* 17: 'input'  */
 };
 
 /* Data structures for declaring the token and its attributes */
@@ -189,6 +190,7 @@ typedef struct scannerData {
 #define GRT_CHR '>'     /* Greater than character */
 #define UND_CHR '_'     /* Underscore character */
 #define DOT_CHR '.'     /* Dot character */
+#define PND_CHR '#'     /* Pound character for comments */
 
 /* Error states and illegal state */
 #define ESNR    8       /* Error state with no retract */
@@ -207,7 +209,7 @@ typedef enum {
     QUOTE,      /* 3: " - double quote */
     SLASH,      /* 4: / - for comments */
     SEOF,       /* 5: EOF - end of file */
-    COMMENT,    /* 6: # - comment indicator */
+    COMMENT,    /* 6: # - comments */
     DOT,        /* 7: . - for floating point */
     OPERATOR,   /* 8: +, -, *, =, <, > */
     OTHER       /* 9: Any other character */
@@ -296,26 +298,26 @@ NIVLang keywords
 
 /* List of keywords */
 static niv_string keywordTable[KWT_SIZE] = {
-    "Fun",       /* KW00 */
-    "Const",     /* KW01 */
-    "Var",       /* KW02 */
+    "fun",       /* KW00 */
+    "const",     /* KW01 */
+    "var",       /* KW02 */
     "for",       /* KW03 */
     "while",     /* KW04 */
-    "Break",     /* KW05 */
-    "Return",    /* KW06 */
+    "break",     /* KW05 */
+    "return",    /* KW06 */
     "Let",       /* KW07 */
-    "Continue",  /* KW08 */
-    "Class",     /* KW09 */
-    "Print",     /* KW10 */
-    "If",        /* KW11 */
+    "continue",  /* KW08 */
+    "class",     /* KW09 */
+    "print",     /* KW10 */
+    "if",        /* KW11 */
     "elseif",    /* KW12 */
     "endif",     /* KW13 */
-    "When",      /* KW14 */
+    "when",      /* KW14 */
     "True",      /* KW15 */
-    "False"      /* KW16 */
+    "False",     /* KW16 */
+    "input"      /* KW17 */
 };
 
-/* NEW SECTION: About indentation */
 
 /*
  * Scanner attributes to be used (ex: including: indentation data)
@@ -327,7 +329,6 @@ static niv_string keywordTable[KWT_SIZE] = {
 typedef struct languageAttributes {
     niv_char indentationCharType;
     niv_int indentationCurrentPos;
-    /* Additional attributes for NIVLang scanner */
     niv_int keywordCount;
     niv_int stringCount;
     niv_int commentCount;
@@ -340,7 +341,7 @@ niv_int numScannerErrors;
 /* Scanner data */
 ScannerData scData;
 
-/* String literal table - globally declared */
+/* String literal table*/
 BufferPointer stringLiteralTable;
 
 #endif

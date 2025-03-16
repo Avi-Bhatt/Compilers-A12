@@ -2,8 +2,8 @@
 ************************************************************
 * COMPILERS COURSE - Algonquin College
 * Code version: Fall, 2024
-* Author: NIVLang Team
-* Professors: Paulo Sousa
+* Author: Avinish Bhattarai,Nikita Chaudhari
+* Professors: Sarah Khan
 ************************************************************
 */
 
@@ -179,7 +179,7 @@ Token tokenizer(niv_void) {
 			/* Check for comment (/*) */
 			nextChar = readerGetChar(sourceBuffer);
 			if (nextChar == '*') {
-				/* Process comment */
+				/* Process block comment */
 				niv_char last = '\0';
 				while (1) {
 					c = readerGetChar(sourceBuffer);
@@ -195,7 +195,7 @@ Token tokenizer(niv_void) {
 						line++;
 
 					if (last == '*' && c == '/') {
-						break;  /* End of comment found */
+						break;  /* End of block comment found */
 					}
 
 					last = c;
@@ -215,6 +215,23 @@ Token tokenizer(niv_void) {
 				return currentToken;
 			}
 
+			/* Check for comment (#) */
+		case PND_CHR:
+			/* Process line comment */
+			while (1) {
+				c = readerGetChar(sourceBuffer);
+				if (c == NWL_CHR || c == EOF_CHR || c == EOS_CHR) {
+					if (c == NWL_CHR)
+						line++;
+					break;
+				}
+			}
+
+			/* Return comment token */
+			currentToken.code = CMT_T;
+			scData.scanHistogram[currentToken.code]++;
+			return currentToken;
+
 			/* Assignment and equality operators */
 		case ASS_CHR:
 			nextChar = readerGetChar(sourceBuffer);
@@ -229,7 +246,6 @@ Token tokenizer(niv_void) {
 				scData.scanHistogram[currentToken.code]++;
 			}
 			return currentToken;
-
 			/* Relational operators */
 		case LES_CHR:
 			nextChar = readerGetChar(sourceBuffer);
@@ -272,23 +288,6 @@ Token tokenizer(niv_void) {
 			/* If not !=, process as a normal character */
 			readerRetract(sourceBuffer);
 			break;
-
-			/* Check for comment (#) in NIVLang */
-		case '#':
-			/* Process comment until end of line */
-			while (1) {
-				c = readerGetChar(sourceBuffer);
-				if (c == NWL_CHR || c == EOF_CHR || c == EOS_CHR) {
-					if (c == NWL_CHR)
-						line++;
-					break;
-				}
-			}
-
-			/* Return comment token */
-			currentToken.code = CMT_T;
-			scData.scanHistogram[currentToken.code]++;
-			return currentToken;
 
 			/* String literal processing */
 		case QOT_CHR:
@@ -424,8 +423,8 @@ Token tokenizer(niv_void) {
 			readerAddChar(lexemeBuffer, READER_TERMINATOR);
 			lexeme = readerGetContent(lexemeBuffer, 0);
 
-			/* Process numeric literal - important fix here */
-			if (strchr(lexeme, '.') != NULL) {
+			/* Process numeric literal */
+			if (isFloat) {
 				/* This is a floating-point literal */
 				currentToken = funcFPL(lexeme);
 			}
@@ -498,7 +497,7 @@ niv_int nextClass(niv_char c) {
 	if (c == DIV_CHR)
 		return SLASH;
 
-	if (c == '#') /* Comment indicator for NIVLang */
+	if (c == PND_CHR) 
 		return COMMENT;
 
 	if (c == DOT_CHR)
@@ -585,7 +584,7 @@ Token funcFPL(niv_string lexeme) {
 	tfloat = (niv_float)atof(lexeme);
 
 	/* Check if the float is within valid range */
-	if (tfloat >= FLT_MIN && tfloat <= FLT_MAX || tfloat == 0.0) {
+	if ((tfloat >= FLT_MIN && tfloat <= FLT_MAX) || tfloat == 0.0) {
 		currentToken.code = FPL_T;
 		scData.scanHistogram[currentToken.code]++;
 		currentToken.attribute.floatValue = tfloat;
@@ -678,7 +677,7 @@ Token funcCMT(niv_string lexeme) {
 }
 
 /*
-************************************************************
+ ************************************************************
  * Acceptance State Function Error
  ***********************************************************
  */
@@ -699,6 +698,33 @@ Token funcErr(niv_string lexeme) {
 			line++;
 	currentToken.code = ERR_T;
 	scData.scanHistogram[currentToken.code]++;
+	return currentToken;
+}
+
+/*
+ ************************************************************
+ * Acceptance State Function for Boolean Literals
+ ***********************************************************
+ */
+Token funcBOL(niv_string lexeme) {
+	Token currentToken = { 0 };
+
+	/* Check if it's a boolean literal */
+	if (strcmp(lexeme, "True") == 0) {
+		currentToken.code = BOL_T;
+		currentToken.attribute.boolValue = 1;  /* True */
+		scData.scanHistogram[currentToken.code]++;
+	}
+	else if (strcmp(lexeme, "False") == 0) {
+		currentToken.code = BOL_T;
+		currentToken.attribute.boolValue = 0;  /* False */
+		scData.scanHistogram[currentToken.code]++;
+	}
+	else {
+		/* If not a boolean literal, it might be an identifier */
+		currentToken = funcID(lexeme);
+	}
+
 	return currentToken;
 }
 
@@ -786,6 +812,9 @@ niv_void printToken(Token t) {
 		break;
 	case CMT_T:
 		printf("CMT_T\n");
+		break;
+	case BOL_T:
+		printf("BOL_T\t\t%s\n", t.attribute.boolValue ? "True" : "False");
 		break;
 	default:
 		printf("Scanner error: invalid token code: %d\n", t.code);
